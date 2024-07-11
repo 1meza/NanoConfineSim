@@ -1,0 +1,59 @@
+# LAMMPS input script to minimize energy
+
+units real
+atom_style full
+bond_style harmonic
+angle_style harmonic
+dihedral_style opls
+
+pair_style hybrid lj/cut 14.0 lj/cut/tip4p/long 4 2 3 4 0.15 14.0
+
+#pair_style lj/cut/tip4p/long 
+
+kspace_style pppm/tip4p 1.0e-4
+
+special_bonds lj 0.0 0.0 0.5
+
+read_data ../systemdata/water_in_cnt.data
+# molecule water ../systemdata/tip4p.mol
+
+# define masses
+mass 1 12.011 # C # O (water TIP4P)
+mass 2 1.008 # H (water TIP4P)
+mass 3 0.000 # M (water TIP4P)
+mass 4 15.999 # O (water TIP4P)
+
+pair_coeff * * lj/cut/tip4p/long 0 1
+bond_coeff * 0 0
+angle_coeff * 0 0
+dihedral_coeff * 0 0 0 0
+
+pair_coeff 1 1 0.066 3.4
+bond_coeff 1 469 1.4
+angle_coeff 1 63 120
+dihedral_coeff 1 0 7.25 0 0
+# improper_coeff 1 5 180
+
+# improper_coeff * 0 0
+
+pair_coeff 4 4 lj/cut/tip4p/long 0.155 3.1536 # O-O (water TIP4P/2005)
+pair_coeff 4 1 lj/cut/tip4p/long 0.114 3.28 # O-C (amber)
+
+
+# pair_coeff * * airebo CH.airebo NULL NULL C
+
+bond_coeff 3 0 0.9572 # (water TIP4P/2005)
+
+angle_coeff 4 0 104.52 # (water TIP4P/2005)
+
+# define groups of water and cnt
+group water type 2 4
+group cnt type 1
+
+
+
+thermo 100
+
+minimize 1.0e-4 1.0e-6 1000 10000
+
+write_data water_in_cnt_minimized.data
