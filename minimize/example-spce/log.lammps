@@ -1,0 +1,179 @@
+LAMMPS (17 Apr 2024)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98)
+  using 1 OpenMP thread(s) per MPI task
+units real
+atom_style full
+region box block -5 5 -5 5 -5 5
+create_box 2 box  bond/types 1 angle/types 1                 extra/bond/per/atom 2 extra/angle/per/atom 1 extra/special/per/atom 2
+Created orthogonal box = (-5 -5 -5) to (5 5 5)
+  1 by 1 by 1 MPI processor grid
+
+mass 1 15.9994
+mass 2 1.008
+
+pair_style lj/cut/coul/cut 10.0
+pair_coeff 1 1 0.1553 3.166
+pair_coeff 1 2 0.0    1.0
+pair_coeff 2 2 0.0    1.0
+
+bond_style zero
+bond_coeff 1 1.0
+
+angle_style zero
+angle_coeff 1 109.47
+
+molecule water spce.mol
+Read molecule template water:
+# Water molecule. SPC/E geometry
+  1 molecules
+  0 fragments
+  3 atoms with max type 2
+  2 bonds with max type 1
+  1 angles with max type 1
+  0 dihedrals with max type 0
+  0 impropers with max type 0
+create_atoms 0 random 33 34564 NULL mol water 25367 overlap 1.33
+Created 99 atoms
+  using lattice units in orthogonal box = (-5 -5 -5) to (5 5 5)
+  create_atoms CPU = 0.002 seconds
+
+timestep 1.0
+fix rigid     all shake 0.0001 10 10000 b 1 a 1
+Finding SHAKE clusters ...
+       0 = # of size 2 clusters
+       0 = # of size 3 clusters
+       0 = # of size 4 clusters
+      33 = # of frozen angles
+  find clusters CPU = 0.000 seconds
+minimize 0.0 0.0 1000 10000
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+WARNING: Using fix shake with minimization.
+  Substituting constraints with harmonic restraint forces using kbond=1987 (src/RIGID/fix_shake.cpp:360)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 12
+  ghost atom cutoff = 12
+  binsize = 6, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/cut/coul/cut, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton
+      stencil: half/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 8.766 | 8.766 | 8.766 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press     
+         0   0             -691.70854      0             -691.70854      51979.684    
+         2   0             -949.73615      0             -905.6627       30076.717    
+SHAKE stats (type/ave/delta/count) on step 2
+Bond:   1   0.997309  0.117585          66
+Angle:  1   110.002   12.1744           33
+Loop time of 0.0883273 on 1 procs for 2 steps with 99 atoms
+
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+     -691.708537407576  -905.662696353912  -905.662696353912
+  Force two-norm initial, final = 930.75228 720.59354
+  Force max component initial, final = 520.63762 380.63759
+  Final line search alpha, max atom move = 3.0672901e-14 1.1675259e-11
+  Iterations, force evaluations = 2 68
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.084449   | 0.084449   | 0.084449   |   0.0 | 95.61
+Bond    | 3.3172e-05 | 3.3172e-05 | 3.3172e-05 |   0.0 |  0.04
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.0030542  | 0.0030542  | 0.0030542  |   0.0 |  3.46
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0.00044093 | 0.00044093 | 0.00044093 |   0.0 |  0.50
+Other   |            | 0.0003496  |            |       |  0.40
+
+Nlocal:             99 ave          99 max          99 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           3782 ave        3782 max        3782 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:          35315 ave       35315 max       35315 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 35315
+Ave neighs/atom = 356.71717
+Ave special neighs/atom = 2
+Neighbor list builds = 0
+Dangerous builds = 0
+velocity all create 300.0 5463576
+fix integrate all nvt temp 300.0 300.0 100.0
+
+dump mydump all atom 1000 dump.lammpstrj
+
+thermo_style custom step temp press etotal density pe ke
+thermo 1000
+run 20000 upto
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+SHAKE stats (type/ave/delta/count) on step 2
+Bond:   1   0.997309  0.117585          66
+Angle:  1   110.002   12.1744           33
+Per MPI rank memory allocation (min/avg/max) = 7.641 | 7.641 | 7.641 Mbytes
+   Step          Temp          Press          TotEng        Density         PotEng         KinEng    
+         2   300            22964.629     -891.61036      0.987204      -949.73615      58.125796    
+      1000   304.23572     -55403.762     -2313.364       0.987204      -2372.3105      58.946477    
+      2000   295.62253     -39359.346     -1704.9939      0.987204      -1762.2716      57.27765     
+      3000   327.56886     -41050.132     -1874.6834      0.987204      -1938.1507      63.467336    
+      4000   286.88164     -23738.952     -1020.8379      0.987204      -1076.422       55.584079    
+      5000   288.71147     -42275.696     -1874.4612      0.987204      -1930.3998      55.938613    
+      6000   272.55853     -29765.78      -1381.744       0.987204      -1434.553       52.808939    
+      7000   314.32662     -34583.652     -1491.7658      0.987204      -1552.6674      60.901617    
+      8000   273.86063     -35928.885     -1525.2765      0.987204      -1578.3378      53.061223    
+      9000   312.80714     -32153.701     -1350.6334      0.987204      -1411.2407      60.607214    
+SHAKE stats (type/ave/delta/count) on step 10000
+Bond:   1   1         1.34056e-06       66
+Angle:  1   109.47    0.000114938       33
+     10000   275.33777     -38793.777     -1677.5642      0.987204      -1730.9116      53.347423    
+     11000   263.95532     -40518.084     -1725.6708      0.987204      -1776.8128      51.142044    
+     12000   327.49334     -44647.238     -1989.9458      0.987204      -2053.3985      63.452703    
+     13000   293.08106     -52559.919     -2364.6488      0.987204      -2421.4341      56.785233    
+     14000   296.12331     -39797.465     -1667.6156      0.987204      -1724.9903      57.374676    
+     15000   325.76998     -34104.016     -1497.0439      0.987204      -1560.1627      63.118797    
+     16000   330.22947     -38328.041     -1699.1145      0.987204      -1763.0973      63.982835    
+     17000   364.16159     -37625.314     -1610.0295      0.987204      -1680.5868      70.557274    
+     18000   256.85537     -46215.304     -1938.8742      0.987204      -1988.6406      49.76641     
+     19000   301.34097     -37569.305     -1579.9623      0.987204      -1638.3479      58.385612    
+SHAKE stats (type/ave/delta/count) on step 20000
+Bond:   1   1         7.38266e-07       66
+Angle:  1   109.47    7.19631e-05       33
+     20000   293.88037     -47206.871     -2122.0615      0.987204      -2179.0016      56.940102    
+Loop time of 22.5951 on 1 procs for 19998 steps with 99 atoms
+
+Performance: 76.469 ns/day, 0.314 hours/ns, 885.058 timesteps/s, 87.621 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 19.62      | 19.62      | 19.62      |   0.0 | 86.83
+Bond    | 0.0071972  | 0.0071972  | 0.0071972  |   0.0 |  0.03
+Neigh   | 0.78489    | 0.78489    | 0.78489    |   0.0 |  3.47
+Comm    | 1.0058     | 1.0058     | 1.0058     |   0.0 |  4.45
+Output  | 0.0049691  | 0.0049691  | 0.0049691  |   0.0 |  0.02
+Modify  | 1.1192     | 1.1192     | 1.1192     |   0.0 |  4.95
+Other   |            | 0.05301    |            |       |  0.23
+
+Nlocal:             99 ave          99 max          99 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           3793 ave        3793 max        3793 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:          35214 ave       35214 max       35214 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 35214
+Ave neighs/atom = 355.69697
+Ave special neighs/atom = 2
+Neighbor list builds = 503
+Dangerous builds = 0
+write_data spce.data nocoeff
+System init for write_data ...
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:22

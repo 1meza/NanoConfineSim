@@ -5,86 +5,498 @@ OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:98
 
 units real
 atom_style full
-bond_style harmonic
-angle_style harmonic
-pair_style lj/cut/tip4p/long 2 3 1 1 0.125 12.0 12.0
-kspace_style pppm/tip4p 1.0e-4
+bond_style hybrid harmonic zero
+angle_style hybrid harmonic zero
+dihedral_style opls
 
-read_data ../systemdata/water_in_cnt.data
+pair_style lj/cut/coul/cut 10.0
+
+special_bonds lj 0.0 0.0 0.5
+
+read_data spce-model/co2_water_in_cnt.data
 Reading data file ...
-  orthogonal box = (-40 -40 -23.3855) to (40 40 56.6145)
+  orthogonal box = (-40 -40 -0.0005) to (40 40 33.2295)
   1 by 1 by 1 MPI processor grid
   reading atoms ...
-  615 atoms
+  618 atoms
   scanning bonds ...
   3 = max bonds/atom
   scanning angles ...
   3 = max angles/atom
   scanning dihedrals ...
   12 = max dihedrals/atom
-  orthogonal box = (-40 -40 -23.3855) to (40 40 56.6145)
+  orthogonal box = (-40 -40 -0.0005) to (40 40 33.2295)
   1 by 1 by 1 MPI processor grid
   reading bonds ...
-  745 bonds
+  747 bonds
   reading angles ...
-  1265 angles
+  1266 angles
   reading dihedrals ...
   2350 dihedrals
 Finding 1-2 1-3 1-4 neighbors ...
-  special bond factors lj:    0        0        0       
+  special bond factors lj:    0        0        0.5     
   special bond factors coul:  0        0        0       
      3 = max # of 1-2 neighbors
      6 = max # of 1-3 neighbors
     18 = max # of 1-4 neighbors
     18 = max # of special neighbors
   special bonds CPU = 0.001 seconds
-  read_data CPU = 0.026 seconds
+  read_data CPU = 0.030 seconds
 
-# define groups of water and cnt
-group water type 2 3
-195 atoms in group water
-group cnt type 1
-420 atoms in group cnt
+group carbon_atoms type 1
+420 atoms in group carbon_atoms
+group H2O type 2 3
+195 atoms in group H2O
+group CO2 type 4 5
+3 atoms in group CO2
+group liquid union H2O CO2
+198 atoms in group liquid
 
-# define masses
-mass 1 12.0107
-mass 2 1.008
-mass 3 15.9994
 
-# define potentials
-pair_coeff * * 0.0 0.0
-pair_coeff 1 1 0.0553 3.40         # Example Lennard-Jones parameters for CNT
-pair_coeff 2 2 0.0 0.0             # TIP4P water H-H (epsilon must be 0.0)
-pair_coeff 3 3 0.16275 3.16435     # TIP4P water O-O
-pair_coeff 1 2 0.0553 3.4          # CNT-H cross interaction (if needed)
-pair_coeff 1 3 0.1 3.283           # CNT-O cross interaction
+# Carbon Nanotube
+pair_coeff 1 1 0.066 3.4
+bond_coeff 1 harmonic 469 1.4
+angle_coeff 1 harmonic 63 120
+dihedral_coeff 1 0 7.25 0 0
 
-bond_coeff 1 450 0.9572
+# SPC/E
+pair_coeff 3 3 0.1553 3.166 # O-O
+pair_coeff 3 2 0.0    1.0 # O-H
+pair_coeff 2 2 0.0    1.0 # H-H
+pair_coeff 3 1 0.11831 3.28218 # O-C (amber)
 
-angle_coeff 1 55 104.52
+bond_coeff 2 zero 1.0
+angle_coeff 2 zero 109.47
 
-# define settings
+# CO2
+pair_coeff 4 4 0.053649 2.8 # CO2
+pair_coeff 5 5 0.156973 3.05 # CO2
+bond_coeff 3 harmonic 2566.7 1.16
+angle_coeff 3 harmonic 295.4 180.00
+
+# Neighbor settings
 neighbor 2.0 bin
-neigh_modify delay 5
+neigh_modify every 1 delay 0 check yes
 
 
-# define minimization settings
-thermo 100
-thermo_style custom step pe lx ly lz press pxx pyy pzz
-min_style cg
+# Compute temperature, pressure, and energy for H2O group
+compute temp_H2O H2O temp
+compute pe_H2O H2O pe/atom
+compute ke_H2O H2O ke/atom
+
+# Reduce computes to get overall values for the H2O group
+compute reduce_pe_H2O H2O reduce sum c_pe_H2O
+compute reduce_ke_H2O H2O reduce sum c_ke_H2O
+
+# Calculate the total energy for the H2O group
+variable etotal_H2O equal c_reduce_pe_H2O+c_reduce_ke_H2O
+
+
+fix rigid H2O shake 0.0001 100 10000 b 2 a 2
+Finding SHAKE clusters ...
+       0 = # of size 2 clusters
+       0 = # of size 3 clusters
+       0 = # of size 4 clusters
+      65 = # of frozen angles
+  find clusters CPU = 0.000 seconds
+# velocity H2O create 1.0 5463576
 minimize 1.0e-4 1.0e-6 1000 10000
-Switching to 'neigh_modify every 1 delay 0 check yes' setting during minimization
-PPPM initialization ...
-  extracting TIP4P info from pair style
-  using 12-bit tables for long-range coulomb (src/kspace.cpp:342)
-  G vector (1/distance) = 0.1703872
-  grid = 18 18 18
-  stencil order = 5
-  estimated absolute RMS force accuracy = 0.024635608
-  estimated relative force accuracy = 7.4189402e-05
-  using double precision KISS FFT
-  3d grid and FFT values/proc = 12167 5832
-WARNING: Communication cutoff 0 is shorter than a bond length based estimate of 3.4358. This may lead to errors. (src/comm.cpp:730)
-WARNING: Increasing communication cutoff to 15.0822 for TIP4P pair style (src/KSPACE/pair_lj_cut_tip4p_long.cpp:478)
-ERROR: Water H epsilon must be 0.0 for pair style lj/cut/tip4p/long (src/KSPACE/pair_lj_cut_tip4p_long.cpp:498)
-Last command: minimize 1.0e-4 1.0e-6 1000 10000
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+WARNING: Using fix shake with minimization.
+  Substituting constraints with harmonic restraint forces using kbond=1987 (src/RIGID/fix_shake.cpp:360)
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 12
+  ghost atom cutoff = 12
+  binsize = 6, bins = 14 14 6
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/cut/coul/cut, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton
+      stencil: half/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 15.49 | 15.49 | 15.49 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press     
+         0   0              16474680       1175.6584      16475856       21251218     
+        28   0              977.21533      1867.5527      2885.7692      1621.3964    
+SHAKE stats (type/ave/delta/count) on step 28
+Bond:   2   1.00831   0.0342656        130
+Angle:  2   107.722   5.84275           65
+Loop time of 0.595291 on 1 procs for 28 steps with 618 atoms
+
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+      16475855.7804314   2885.76918571898   2885.76918571898
+  Force two-norm initial, final = 87800904 620.9027
+  Force max component initial, final = 17004022 183.33171
+  Final line search alpha, max atom move = 1.6994063e-14 3.1155506e-12
+  Iterations, force evaluations = 28 116
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.51156    | 0.51156    | 0.51156    |   0.0 | 85.93
+Bond    | 0.075038   | 0.075038   | 0.075038   |   0.0 | 12.61
+Neigh   | 0.0036762  | 0.0036762  | 0.0036762  |   0.0 |  0.62
+Comm    | 0.00081493 | 0.00081493 | 0.00081493 |   0.0 |  0.14
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0.0012746  | 0.0012746  | 0.0012746  |   0.0 |  0.21
+Other   |            | 0.002931   |            |       |  0.49
+
+Nlocal:            618 ave         618 max         618 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            450 ave         450 max         450 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:         111604 ave      111604 max      111604 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 111604
+Ave neighs/atom = 180.589
+Ave special neighs/atom = 12.226537
+Neighbor list builds = 1
+Dangerous builds = 0
+
+
+dump mydmp all atom 1000 dump5.lammpstrj
+
+thermo_style custom step temp press etotal ke pe c_temp_H2O c_reduce_pe_H2O c_reduce_ke_H2O v_etotal_H2O
+thermo 1000
+
+
+fix extra all print 1000 """
+- timestep: $(step)
+  temp: $(c_temp_H2O)
+  etotal: $(v_etotal_H2O)
+  pe: $(c_reduce_pe_H2O)
+  ke: $(c_reduce_ke_H2O)
+  """ file output.yaml screen no
+
+
+fix mynve liquid nve/limit 0.1
+fix myber liquid temp/berendsen 1 1 100
+timestep 1.0
+run 20000
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+WARNING: Should not use fix nve/limit with fix shake or fix rattle (src/fix_nve_limit.cpp:76)
+SHAKE stats (type/ave/delta/count) on step 28
+Bond:   2   1.00831   0.0342656        130
+Angle:  2   107.722   5.84275           65
+Per MPI rank memory allocation (min/avg/max) = 14.37 | 14.37 | 14.37 Mbytes
+   Step          Temp          Press          TotEng         KinEng         PotEng       c_temp_H2O   c_reduce_pe_H2O c_reduce_ke_H2O  v_etotal_H2O 
+        28   0              1636.9884      2844.7681      0              2844.7681      0              410.34431      0              410.34431    
+      1000   6.7886643      845.98933      1965.4078      11.170117      1954.2377      26.655554     -341.67264      10.249713     -331.42292    
+      2000   0.36038252     827.54517      1943.3824      0.59297597     1942.7895      1.4825901     -372.67892      0.57009219    -372.10883    
+      3000   0.24324407     835.9591       2014.58        0.40023553     2014.1797      1.0138587     -300.80312      0.38985351    -300.41327    
+      4000   0.24920537     840.79667      2070.9629      0.41004429     2070.5529      1.0539236     -238.3222       0.40525943    -237.91695    
+      5000   0.236988       819.93995      1868.1452      0.38994174     1867.7553      0.99367723    -440.92012      0.38209324    -440.53803    
+      6000   0.24613049     823.78993      1914.7981      0.40498486     1914.3931      1.0236727     -396.96217      0.39362723    -396.56854    
+      7000   0.24300496     820.96918      1888.8703      0.39984211     1888.4704      1.014621      -427.69268      0.39014661    -427.30254    
+      8000   0.25414726     830.0032       1962.5222      0.41817573     1962.104       1.0795931     -348.98146      0.41513       -348.56633    
+      9000   0.23356124     823.63479      1906.7728      0.38430334     1906.3885      0.9873298     -409.95242      0.37965249    -409.57277    
+SHAKE stats (type/ave/delta/count) on step 10000
+Bond:   2   1         7.85447e-07      130
+Angle:  2   109.47    7.68596e-05       65
+     10000   0.25118843     826.31361      1930.623       0.41330725     1930.2097      1.0575739     -386.19833      0.40666309    -385.79166    
+     11000   0.25980527     824.52411      1916.6224      0.42748544     1916.1949      1.0989717     -404.8038       0.42258155    -404.38122    
+     12000   0.26320302     825.50999      1930.6355      0.43307613     1930.2024      1.0942087     -386.08191      0.42075006    -385.66116    
+     13000   0.25786227     826.92879      1934.5251      0.42428843     1934.1008      1.0831657     -386.81881      0.41650376    -386.4023     
+     14000   0.23649757     830.57411      1978.3356      0.38913479     1977.9465      0.98774194    -338.17345      0.37981097    -337.79364    
+     15000   0.25597904     825.51087      1928.547       0.42118974     1928.1258      1.0641395     -392.99393      0.4091877     -392.58474    
+     16000   0.23233118     824.72739      1920.5189      0.38227938     1920.1366      0.96302768    -405.85383      0.37030773    -405.48352    
+     17000   0.25324172     808.54985      1766.7389      0.41668574     1766.3222      1.0564578     -542.62368      0.4062339     -542.21745    
+     18000   0.24192418     829.36298      1956.5649      0.39806378     1956.1668      0.99991224    -355.16249      0.38449075    -354.778      
+     19000   0.24579909     823.88615      1906.762       0.40443957     1906.3576      1.03412       -409.59642      0.39764447    -409.19877    
+SHAKE stats (type/ave/delta/count) on step 20000
+Bond:   2   1         7.70012e-07      130
+Angle:  2   109.47    7.9495e-05        65
+     20000   0.24785849     824.48417      1925.7019      0.40782814     1925.2941      1.0238939     -388.51828      0.39371228    -388.12457    
+     20028   0.23706779     820.47153      1880.063       0.39007304     1879.673       0.98771163    -428.99973      0.37979932    -428.61993    
+Loop time of 79.6877 on 1 procs for 20000 steps with 618 atoms
+
+Performance: 21.685 ns/day, 1.107 hours/ns, 250.980 timesteps/s, 155.106 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 66.551     | 66.551     | 66.551     |   0.0 | 83.51
+Bond    | 12.109     | 12.109     | 12.109     |   0.0 | 15.20
+Neigh   | 0.097748   | 0.097748   | 0.097748   |   0.0 |  0.12
+Comm    | 0.12776    | 0.12776    | 0.12776    |   0.0 |  0.16
+Output  | 0.0091223  | 0.0091223  | 0.0091223  |   0.0 |  0.01
+Modify  | 0.69436    | 0.69436    | 0.69436    |   0.0 |  0.87
+Other   |            | 0.0984     |            |       |  0.12
+
+Nlocal:            618 ave         618 max         618 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            452 ave         452 max         452 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:         111808 ave      111808 max      111808 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 111808
+Ave neighs/atom = 180.91909
+Ave special neighs/atom = 12.226537
+Neighbor list builds = 27
+Dangerous builds = 0
+
+fix 1 liquid temp/berendsen 300.0 300.0 100.0
+timestep 1.0
+run 20000
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+WARNING: Should not use fix nve/limit with fix shake or fix rattle (src/fix_nve_limit.cpp:76)
+SHAKE stats (type/ave/delta/count) on step 20028
+Bond:   2   1         8.2574e-07       130
+Angle:  2   109.47    7.57083e-05       65
+Per MPI rank memory allocation (min/avg/max) = 15.64 | 15.64 | 15.64 Mbytes
+   Step          Temp          Press          TotEng         KinEng         PotEng       c_temp_H2O   c_reduce_pe_H2O c_reduce_ke_H2O  v_etotal_H2O 
+     20028   0.23706779     820.4779       1880.063       0.39007304     1879.673       0.98771163    -428.99973      0.37979932    -428.61993    
+     21000   37.525765      875.10358      1930.4444      61.745162      1868.6992      156.40978     -437.79841      60.143391     -377.65502    
+     22000   37.635279      819.71997      1605.7156      61.925358      1543.7902      158.5685      -741.52194      60.973471     -680.54847    
+     23000   36.941384      806.64627      1447.0069      60.783617      1386.2233      153.92686     -921.6406       59.188649     -862.45195    
+     24000   36.36752       801.13392      1444.3622      59.839378      1384.5228      150.83842     -909.03292      58.001066     -851.03186    
+     25000   37.149595      768.14894      1104.0935      61.126209      1042.9673      154.56448     -1246.8532      59.433829     -1187.4194    
+     26000   36.846632      773.51476      1081.7926      60.627712      1021.1649      155.08848     -1268.8175      59.635319     -1209.1822    
+     27000   34.49584       797.29065      1290.2267      56.759702      1233.467       144.45333     -1063.8276      55.545846     -1008.2818    
+     28000   38.975858      754.27319      1055.4934      64.131156      991.36223      164.04708     -1294.7667      63.080121     -1231.6866    
+     29000   34.043796      779.4567       1320.5163      56.015906      1264.5004      143.21513     -1021.3124      55.069726     -966.24266    
+SHAKE stats (type/ave/delta/count) on step 30000
+Bond:   2   1         8.33036e-07      130
+Angle:  2   109.47    7.99829e-05       65
+     30000   36.38529       765.17246      1076.5507      59.868617      1016.6821      154.286       -1269.1089      59.326748     -1209.7821    
+     31000   34.489503      788.07419      1286.2865      56.749275      1229.5372      145.14536     -1052.878       55.811945     -997.06608    
+     32000   35.949207      773.06136      1145.8703      59.151082      1086.7192      151.19935     -1223.9325      58.139854     -1165.7926    
+     33000   35.299504      765.4904       1161.0759      58.082056      1102.9939      148.48466     -1203.12        57.095988     -1146.024     
+     34000   36.306393      771.67753      1264.1498      59.738798      1204.411       152.38529     -1092.7337      58.595877     -1034.1378    
+     35000   35.082991      756.87419      892.76499      57.725804      835.03919      147.58357     -1453.7008      56.749498     -1396.9513    
+     36000   35.92877       761.6431       1027.0808      59.117454      967.96332      152.64199     -1304.6247      58.694584     -1245.9301    
+     37000   36.209278      778.06388      1218.044       59.579005      1158.465       150.31996     -1140.2723      57.801706     -1082.4706    
+     38000   35.280637      783.6895       1324.5596      58.051012      1266.5085      149.57186     -1026.0705      57.514045     -968.55649    
+     39000   35.222231      781.08718      1133.4253      57.954911      1075.4704      148.78377     -1211.6374      57.211005     -1154.4264    
+SHAKE stats (type/ave/delta/count) on step 40000
+Bond:   2   1         7.3251e-07       130
+Angle:  2   109.47    7.31958e-05       65
+     40000   34.921333      801.11977      1423.471       57.459812      1366.0112      147.23639     -924.87921      56.616001     -868.26321    
+     40028   38.083067      768.76378      1203.1711      62.662151      1140.5089      160.96499     -1149.7669      61.894983     -1087.8719    
+Loop time of 80.8695 on 1 procs for 20000 steps with 618 atoms
+
+Performance: 21.368 ns/day, 1.123 hours/ns, 247.312 timesteps/s, 152.839 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 66.766     | 66.766     | 66.766     |   0.0 | 82.56
+Bond    | 12.166     | 12.166     | 12.166     |   0.0 | 15.04
+Neigh   | 0.92757    | 0.92757    | 0.92757    |   0.0 |  1.15
+Comm    | 0.14128    | 0.14128    | 0.14128    |   0.0 |  0.17
+Output  | 0.0085039  | 0.0085039  | 0.0085039  |   0.0 |  0.01
+Modify  | 0.75896    | 0.75896    | 0.75896    |   0.0 |  0.94
+Other   |            | 0.1007     |            |       |  0.12
+
+Nlocal:            618 ave         618 max         618 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            452 ave         452 max         452 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:         111778 ave      111778 max      111778 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 111778
+Ave neighs/atom = 180.87055
+Ave special neighs/atom = 12.226537
+Neighbor list builds = 255
+Dangerous builds = 0
+
+unfix mynve
+fix all_nve liquid nve
+run 20000
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+SHAKE stats (type/ave/delta/count) on step 40028
+Bond:   2   1         1.95062e-06      130
+Angle:  2   109.47    0.000133482       65
+Per MPI rank memory allocation (min/avg/max) = 15.64 | 15.64 | 15.64 Mbytes
+   Step          Temp          Press          TotEng         KinEng         PotEng       c_temp_H2O   c_reduce_pe_H2O c_reduce_ke_H2O  v_etotal_H2O 
+     40028   38.083067      768.76857      1203.1711      62.662151      1140.5089      160.96499     -1149.7669      61.894983     -1087.8719    
+     41000   35.074986      790.65414      1256.0452      57.712633      1198.3326      147.87187     -1084.2363      56.860357     -1027.3759    
+     42000   37.253285      773.27915      1182.5774      61.296821      1121.2806      158.25193     -1162.3005      60.851742     -1101.4488    
+     43000   38.331303      799.31554      1453.5316      63.070601      1390.461       163.44479     -914.99935      62.848526     -852.15082    
+     44000   33.325189      784.28275      1150.3399      54.833504      1095.5064      141.964       -1208.7203      54.588637     -1154.1317    
+     45000   36.033648      786.25577      1187.1188      59.290022      1127.8287      152.11346     -1147.6889      58.491352     -1089.1975    
+     46000   33.398135      774.05229      1084.7305      54.953529      1029.777       138.41508     -1280.2013      53.22399      -1226.9773    
+     47000   36.048167      762.87687      1193.0467      59.313911      1133.7328      150.07057     -1158.7675      57.705809     -1101.0617    
+     48000   37.374941      780.18374      1205.9158      61.496996      1144.4188      156.23426     -1129.3887      60.0759       -1069.3128    
+     49000   34.109862      774.93918      1152.1784      56.12461       1096.0538      143.31726     -1188.1304      55.108996     -1133.0214    
+SHAKE stats (type/ave/delta/count) on step 50000
+Bond:   2   1         1.04041e-06      130
+Angle:  2   109.47    0.00010569        65
+     50000   37.16345       784.79301      1267.6203      61.149006      1206.4713      157.28523     -1079.708       60.480023     -1019.2279    
+     51000   34.097783      778.99963      1236.4457      56.104737      1180.341       143.84149     -1101.5645      55.310575     -1046.254     
+     52000   34.160998      787.92323      1162.7204      56.20875       1106.5116      143.44682     -1168.8471      55.158817     -1113.6883    
+     53000   38.493416      760.79588      995.5625       63.337341      932.22516      160.58964     -1339.3604      61.750651     -1277.6098    
+     54000   36.032861      768.97223      1041.2678      59.288726      981.97906      150.31881     -1300.6947      57.801266     -1242.8934    
+     55000   35.250669      765.18402      1091.287       58.001702      1033.2853      148.49667     -1254.3612      57.100607     -1197.2606    
+     56000   36.174814      777.64051      1308.9465      59.522297      1249.4242      147.29946     -1051.7597      56.640251     -995.11945    
+     57000   37.212172      746.51642      1028.2711      61.229175      967.04195      153.92738     -1326.1483      59.188849     -1266.9594    
+     58000   34.698114      786.5565       1237.6604      57.092524      1180.5679      145.56886     -1103.2955      55.974794     -1047.3207    
+     59000   32.745921      793.7033       1312.5318      53.880372      1258.6514      138.54856     -1035.5999      53.275314     -982.32456    
+SHAKE stats (type/ave/delta/count) on step 60000
+Bond:   2   1         9.73796e-07      130
+Angle:  2   109.47    7.94149e-05       65
+     60000   34.516742      745.216        968.79879      56.794093      912.00469      145.33022     -1371.5859      55.883031     -1315.7028    
+     60028   35.84559       746.00983      994.43973      58.980591      935.45914      150.56229     -1340.1826      57.89489      -1282.2877    
+Loop time of 80.8351 on 1 procs for 20000 steps with 618 atoms
+
+Performance: 21.377 ns/day, 1.123 hours/ns, 247.417 timesteps/s, 152.904 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 66.932     | 66.932     | 66.932     |   0.0 | 82.80
+Bond    | 12.192     | 12.192     | 12.192     |   0.0 | 15.08
+Neigh   | 0.73586    | 0.73586    | 0.73586    |   0.0 |  0.91
+Comm    | 0.13888    | 0.13888    | 0.13888    |   0.0 |  0.17
+Output  | 0.0085413  | 0.0085413  | 0.0085413  |   0.0 |  0.01
+Modify  | 0.72639    | 0.72639    | 0.72639    |   0.0 |  0.90
+Other   |            | 0.1015     |            |       |  0.13
+
+Nlocal:            618 ave         618 max         618 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            453 ave         453 max         453 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:         111763 ave      111763 max      111763 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 111763
+Ave neighs/atom = 180.84628
+Ave special neighs/atom = 12.226537
+Neighbor list builds = 202
+Dangerous builds = 0
+
+unfix all_nve
+fix nvt_equil_H2O liquid nvt temp 300.0 300.0 100.0
+run 60000
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+SHAKE stats (type/ave/delta/count) on step 60028
+Bond:   2   1         1.04841e-06      130
+Angle:  2   109.47    7.25283e-05       65
+Per MPI rank memory allocation (min/avg/max) = 15.64 | 15.64 | 15.64 Mbytes
+   Step          Temp          Press          TotEng         KinEng         PotEng       c_temp_H2O   c_reduce_pe_H2O c_reduce_ke_H2O  v_etotal_H2O 
+     60028   35.84559       746.01488      994.43973      58.980591      935.45914      150.56229     -1340.1826      57.89489      -1282.2877    
+     61000   47.86765       798.43556      1133.1662      78.761774      1054.4044      199.44491     -1221.5752      76.691452     -1144.8838    
+     62000   52.379848      801.32736      1249.0634      86.186177      1162.8772      219.09945     -1136.6942      84.249105     -1052.4451    
+     63000   45.528301      796.48369      1269.5804      74.912591      1194.6678      193.20813     -1090.2794      74.29326      -1015.9862    
+     64000   45.701113      824.59444      1490.4509      75.196938      1415.254       188.61648     -866.15902      72.527657     -793.63136    
+     65000   52.264458      811.48351      1425.747       85.996312      1339.7507      217.82883     -947.84442      83.760522     -864.08389    
+     66000   46.078964      828.26185      1472.3018      75.818657      1396.4832      194.45088     -917.88641      74.771127     -843.11529    
+     67000   51.479081      793.14628      1224.4946      84.704048      1139.7906      215.82204     -1137.7793      82.988859     -1054.7904    
+     68000   53.928716      784.08855      1334.5916      88.734694      1245.8569      224.94485     -1024.5518      86.496805     -938.055      
+     69000   49.653892      812.92401      1450.0271      81.700868      1368.3262      207.44544     -923.1211       79.767852     -843.35324    
+SHAKE stats (type/ave/delta/count) on step 70000
+Bond:   2   1         9.25044e-07      130
+Angle:  2   109.47    8.31015e-05       65
+     70000   50.77867       786.76148      1316.8339      83.551586      1233.2823      213.11738     -1049.5403      81.948852     -967.59141    
+     71000   48.737029      787.65024      1235.0134      80.192255      1154.8211      207.09625     -1129.4304      79.63358      -1049.7968    
+     72000   49.077954      793.59426      1271.3387      80.753217      1190.5855      208.08311     -1099.4371      80.013055     -1019.4241    
+     73000   48.844603      794.25587      1318.1752      80.369259      1237.8059      204.46639     -1041.9377      78.622336     -963.31535    
+     74000   51.202604      818.51506      1557.6036      84.24913       1473.3545      215.36152     -807.94211      82.811781     -725.13033    
+     75000   55.087719      811.1962       1467.1575      90.641726      1376.5157      231.01532     -935.68955      88.83105      -846.8585     
+     76000   49.119995      805.5918       1399.7788      80.822391      1318.9564      207.02424     -982.00272      79.605891     -902.39683    
+     77000   53.050589      785.7461       1411.8905      87.289819      1324.6007      220.06114     -968.98911      84.618899     -884.37021    
+     78000   49.595843      769.45577      1157.1295      81.605354      1075.5242      209.67276     -1215.5803      80.624313     -1134.9559    
+     79000   47.054663      788.6926       1134.3383      77.424078      1056.9143      197.98569     -1221.2434      76.130348     -1145.113     
+SHAKE stats (type/ave/delta/count) on step 80000
+Bond:   2   1         9.76989e-07      130
+Angle:  2   109.47    8.24713e-05       65
+     80000   49.866795      801.12253      1352.9567      82.051181      1270.9056      210.5243      -1028.7188      80.951751     -947.76708    
+     81000   55.275328      781.48585      1131.5292      90.95042       1040.5788      233.69917     -1237.692       89.863055     -1147.829     
+     82000   52.116952      786.19183      1296.2376      85.753605      1210.484       218.67131     -1079.7494      84.084475     -995.66492    
+     83000   49.46819       797.52863      1385.5633      81.395314      1304.168       206.84302     -1012.8401      79.536208     -933.3039     
+     84000   53.10652       779.1533       1113.5023      87.381848      1026.1204      223.60255     -1271.235       85.980657     -1185.2543    
+     85000   49.212232      793.55772      1306.4303      80.974158      1225.4561      209.74007     -1069.1585      80.650194     -988.50835    
+     86000   47.999723      802.25892      1258.8575      78.979088      1179.8785      203.09548     -1130.1465      78.095188     -1052.0513    
+     87000   47.37568       791.42964      1320.1082      77.952283      1242.1559      198.09024     -1042.1074      76.170551     -965.93684    
+     88000   48.126384      785.16765      1054.052       79.187497      974.86451      203.93992     -1306.3684      78.419896     -1227.9485    
+     89000   52.601597      776.64887      1130.3996      86.551044      1043.8485      219.91235     -1255.6666      84.561685     -1171.1049    
+SHAKE stats (type/ave/delta/count) on step 90000
+Bond:   2   1         1.33996e-06      130
+Angle:  2   109.47    7.85863e-05       65
+     90000   49.346828      804.37788      1301.7453      81.195623      1220.5497      205.72945     -1087.3097      79.108011     -1008.2017    
+     91000   50.109636      790.62958      1236.4542      82.450753      1154.0034      212.93668     -1144.3065      81.879369     -1062.4271    
+     92000   50.37584       796.14217      1148.1817      82.888767      1065.2929      212.95829     -1240.8165      81.88768      -1158.9288    
+     93000   52.772976      768.36316      1041.1103      86.833032      954.2773       222.04773     -1347.291       85.382792     -1261.9082    
+     94000   51.13461       831.95689      1481.5346      84.137253      1397.3974      216.55431     -912.03186      83.270437     -828.76142    
+     95000   55.460034      763.85596      1055.0224      91.254336      963.76803      233.18771     -1320.8442      89.666387     -1231.1778    
+     96000   52.461713      797.64799      1269.6325      86.320877      1183.3116      222.08376     -1109.0107      85.396647     -1023.614     
+     97000   49.65131       784.38078      1260.8599      81.696621      1179.1632      207.43935     -1112.2553      79.765513     -1032.4898    
+     98000   50.607225      813.38657      1299.8889      83.26949       1216.6194      214.60237     -1071.4919      82.519866     -988.97207    
+     99000   57.665901      770.3445       1099.3183      94.883886      1004.4345      243.37547     -1275.0661      93.583831     -1181.4823    
+SHAKE stats (type/ave/delta/count) on step 100000
+Bond:   2   1         8.17194e-07      130
+Angle:  2   109.47    8.63873e-05       65
+    100000   50.236956      786.20677      1273.0867      82.660247      1190.4264      212.28402     -1085.803       81.628406     -1004.1746    
+    101000   52.47244       780.342        1286.0488      86.338527      1199.7103      214.63977     -1104.6247      82.534249     -1022.0905    
+    102000   53.01265       799.78243      1358.2238      87.227393      1270.9964      220.54474     -1019.6917      84.804856     -934.88687    
+    103000   51.032183      801.63433      1234.3189      83.968718      1150.3501      214.61272     -1151.3946      82.52385      -1068.8707    
+    104000   52.787313      789.05607      1268.4913      86.856622      1181.6347      222.75557     -1110.6134      85.654973     -1024.9585    
+    105000   52.113887      761.99318      1077.4511      85.748562      991.70259      220.46575     -1288.1742      84.774482     -1203.3997    
+    106000   51.637923      796.97253      1242.9694      84.965407      1158.004       217.23633     -1152.7672      83.532691     -1069.2345    
+    107000   52.455079      768.50956      1159.4039      86.309961      1073.094       221.59716     -1226.5921      85.209534     -1141.3826    
+    108000   52.35021       790.89102      1351.1505      86.137409      1265.0131      216.43191     -1021.522       83.223372     -938.29862    
+    109000   52.064673      771.20104      1096.4837      85.667585      1010.8161      219.38857     -1283.0783      84.360279     -1198.718     
+SHAKE stats (type/ave/delta/count) on step 110000
+Bond:   2   1         1.44822e-06      130
+Angle:  2   109.47    0.000132754       65
+    110000   55.651387      776.42275      1352.9624      91.56919       1261.3932      235.78297     -1048.3346      90.664327     -957.67023    
+    111000   48.923102      817.63558      1417.3594      80.498421      1336.861       208.44373     -969.34102      80.15172      -889.1893     
+    112000   48.235789      816.13442      1391.5604      79.367513      1312.1929      204.04098     -983.80692      78.458756     -905.34816    
+    113000   52.431187      791.49979      1283.2915      86.27065       1197.0209      216.95421     -1083.9227      83.424208     -1000.4985    
+    114000   51.696384      799.43003      1278.3262      85.061599      1193.2646      218.03749     -1082.2645      83.840758     -998.42373    
+    115000   50.530199      789.17493      1435.5006      83.14275       1352.3578      212.87948     -942.22886      81.857377     -860.37148    
+    116000   44.990841      800.0138       1248.1265      74.028251      1174.0983      188.51529     -1122.353       72.488747     -1049.8642    
+    117000   50.425612      827.87575      1509.7193      82.970662      1426.7487      213.48179     -862.41945      82.088978     -780.33047    
+    118000   53.40581       804.47169      1578.3796      87.874302      1490.5053      223.28315     -815.74939      85.857842     -729.89155    
+    119000   54.039429      792.98893      1248.9754      88.916862      1160.0585      225.47575     -1125.9487      86.70095      -1039.2478    
+SHAKE stats (type/ave/delta/count) on step 120000
+Bond:   2   1         9.17658e-07      130
+Angle:  2   109.47    9.37821e-05       65
+    120000   51.807545      782.07915      1379.6713      85.244505      1294.4268      217.07129     -975.37932      83.469229     -891.91009    
+    120028   47.252857      776.89651      1287.4414      77.750189      1209.6912      197.68212     -1083.5888      76.013616     -1007.5752    
+Loop time of 246.416 on 1 procs for 60000 steps with 618 atoms
+
+Performance: 21.038 ns/day, 1.141 hours/ns, 243.491 timesteps/s, 150.477 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 202.33     | 202.33     | 202.33     |   0.0 | 82.11
+Bond    | 36.875     | 36.875     | 36.875     |   0.0 | 14.96
+Neigh   | 3.9043     | 3.9043     | 3.9043     |   0.0 |  1.58
+Comm    | 0.43513    | 0.43513    | 0.43513    |   0.0 |  0.18
+Output  | 0.02484    | 0.02484    | 0.02484    |   0.0 |  0.01
+Modify  | 2.5346     | 2.5346     | 2.5346     |   0.0 |  1.03
+Other   |            | 0.3093     |            |       |  0.13
+
+Nlocal:            618 ave         618 max         618 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            451 ave         451 max         451 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:         111749 ave      111749 max      111749 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 111749
+Ave neighs/atom = 180.82362
+Ave special neighs/atom = 12.226537
+Neighbor list builds = 1065
+Dangerous builds = 0
+
+write_data spce.data nocoeff
+System init for write_data ...
+Generated 8 of 10 mixed pair_coeff terms from geometric mixing rule
+
+Total wall time: 0:08:08

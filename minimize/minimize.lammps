@@ -2,58 +2,96 @@
 
 units real
 atom_style full
-bond_style harmonic
-angle_style harmonic
+bond_style hybrid harmonic zero
+angle_style hybrid harmonic zero
 dihedral_style opls
 
-pair_style hybrid lj/cut 14.0 lj/cut/tip4p/long 4 2 3 4 0.15 14.0
-
-#pair_style lj/cut/tip4p/long 
-
-kspace_style pppm/tip4p 1.0e-4
+pair_style lj/cut/coul/cut 10.0
 
 special_bonds lj 0.0 0.0 0.5
 
-read_data ../systemdata/water_in_cnt.data
-# molecule water ../systemdata/tip4p.mol
+read_data water_in_cnt-next.data
 
-# define masses
-mass 1 12.011 # C # O (water TIP4P)
-mass 2 1.008 # H (water TIP4P)
-mass 3 0.000 # M (water TIP4P)
-mass 4 15.999 # O (water TIP4P)
+group carbon_atoms type 1
 
-pair_coeff * * lj/cut/tip4p/long 0 1
-bond_coeff * 0 0
-angle_coeff * 0 0
-dihedral_coeff * 0 0 0 0
-
+# Carbon Nanotube
 pair_coeff 1 1 0.066 3.4
-bond_coeff 1 469 1.4
-angle_coeff 1 63 120
+bond_coeff 1 harmonic 469 1.4
+angle_coeff 1 harmonic 63 120
 dihedral_coeff 1 0 7.25 0 0
-# improper_coeff 1 5 180
 
-# improper_coeff * 0 0
+# SPC/E
+pair_coeff 3 3 0.1553 3.166 # O-O
+pair_coeff 3 2 0.0    1.0 # O-H/
+pair_coeff 2 2 0.0    1.0 # H-H
 
-pair_coeff 4 4 lj/cut/tip4p/long 0.155 3.1536 # O-O (water TIP4P/2005)
-pair_coeff 4 1 lj/cut/tip4p/long 0.114 3.28 # O-C (amber)
+pair_coeff 3 1 0.11831 3.28218 # O-C (amber)
 
-
-# pair_coeff * * airebo CH.airebo NULL NULL C
-
-bond_coeff 3 0 0.9572 # (water TIP4P/2005)
-
-angle_coeff 4 0 104.52 # (water TIP4P/2005)
-
-# define groups of water and cnt
-group water type 2 4
-group cnt type 1
+bond_coeff 2 zero 1.0
 
 
+angle_coeff 2 zero 109.47
 
-thermo 100
 
+group H2O type 2 3
+
+# Compute temperature, pressure, and energy for H2O group
+compute temp_H2O H2O temp
+compute pe_H2O H2O pe/atom
+compute ke_H2O H2O ke/atom
+
+# Reduce computes to get overall values for the H2O group
+compute reduce_pe_H2O H2O reduce sum c_pe_H2O
+compute reduce_ke_H2O H2O reduce sum c_ke_H2O
+
+# Calculate the total energy for the H2O group
+variable etotal_H2O equal c_reduce_pe_H2O+c_reduce_ke_H2O
+
+fix rigid H2O shake 0.0001 100 10000 b 2 a 2
+# velocity H2O create 1.0 5463576
 minimize 1.0e-4 1.0e-6 1000 10000
 
-write_data water_in_cnt_minimized.data
+
+
+dump mydmp all atom 1000 dump5.lammpstrj
+
+thermo_style custom step temp press etotal ke pe c_temp_H2O c_reduce_pe_H2O c_reduce_ke_H2O v_etotal_H2O
+thermo 1000
+
+
+fix extra all print 1000 """
+- timestep: $(step)
+  temp: $(c_temp_H2O)
+  etotal: $(v_etotal_H2O)
+  pe: $(c_reduce_pe_H2O)
+  ke: $(c_reduce_ke_H2O)
+  """ file output.yaml screen no
+
+
+fix mynve H2O nve/limit 0.1
+fix myber H2O temp/berendsen 1 1 100
+
+timestep 0.5
+run 20000
+
+
+fix 1 H2O temp/berendsen 300.0 300.0 100.0
+
+# fix nvt_equil_all H2O nvt temp 300.0 300.0 100.0
+
+timestep 1.0
+run 20000
+
+unfix mynve
+fix all_nve H2O nve
+
+run 20000
+
+
+unfix all_nve
+fix nvt_equil_H2O H2O nvt temp 300.0 300.0 100.0
+
+run 40000
+
+write_data spce.data nocoeff
+

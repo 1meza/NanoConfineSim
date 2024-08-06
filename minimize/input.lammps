@@ -1,0 +1,48 @@
+# LAMMPS input script to minimize energy
+
+units real
+atom_style full
+bond_style hybrid harmonic zero
+angle_style hybrid harmonic zero
+dihedral_style opls
+
+pair_style lj/cut/coul/cut 10.0
+
+special_bonds lj 0.0 0.0 0.5
+
+read_data water_in_cnt-next.data
+
+change_box all x scale 1.2 y scale 1.2 remap
+
+group carbon_atoms type 1
+
+# Carbon Nanotube
+pair_coeff 1 1 0.066 3.4
+bond_coeff 1 harmonic 469 1.4
+angle_coeff 1 harmonic 63 120
+dihedral_coeff 1 0 7.25 0 0
+
+pair_coeff 3 3 0.1553 3.166
+pair_coeff 3 2 0.0    1.0
+pair_coeff 2 2 0.0    1.0
+
+
+bond_coeff 2 zero 1.0
+
+
+angle_coeff 2 zero 109.47
+
+group H2O type 2 3
+
+timestep 1.0
+fix rigid H2O shake 0.0001 10 10000 b 1 a 1
+minimize 0.0 0.0 1000 10000
+velocity all create 300.0 5463576
+fix integrate all nvt temp 300.0 300.0 100.0
+
+dump dmp all atom 1000 dump3.lammpstrj
+
+thermo_style custom step temp press etotal density pe ke
+thermo 1000
+run 20000 upto
+write_data spce.data nocoeff

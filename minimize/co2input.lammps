@@ -1,0 +1,98 @@
+# LAMMPS input script to minimize energy
+
+units real
+atom_style full
+bond_style hybrid harmonic zero
+angle_style hybrid harmonic zero
+dihedral_style opls
+
+pair_style lj/cut/coul/cut 10.0
+
+special_bonds lj 0.0 0.0 0.5
+
+read_data spce-model/co2_water_in_cnt.data
+
+group carbon_atoms type 1
+group H2O type 2 3
+group CO2 type 4 5
+group liquid union H2O CO2
+
+
+# Carbon Nanotube
+pair_coeff 1 1 0.066 3.4
+bond_coeff 1 harmonic 469 1.4
+angle_coeff 1 harmonic 63 120
+dihedral_coeff 1 0 7.25 0 0
+
+# SPC/E
+pair_coeff 3 3 0.1553 3.166 # O-O
+pair_coeff 3 2 0.0    1.0 # O-H
+pair_coeff 2 2 0.0    1.0 # H-H
+pair_coeff 3 1 0.11831 3.28218 # O-C (amber)
+
+bond_coeff 2 zero 1.0
+angle_coeff 2 zero 109.47
+
+# CO2
+pair_coeff 4 4 0.053649 2.8 # CO2
+pair_coeff 5 5 0.156973 3.05 # CO2
+bond_coeff 3 harmonic 2566.7 1.16 
+angle_coeff 3 harmonic 295.4 180.00
+
+# Neighbor settings
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes
+
+
+# Compute temperature, pressure, and energy for H2O group
+compute temp_H2O H2O temp
+compute pe_H2O H2O pe/atom
+compute ke_H2O H2O ke/atom
+
+# Reduce computes to get overall values for the H2O group
+compute reduce_pe_H2O H2O reduce sum c_pe_H2O
+compute reduce_ke_H2O H2O reduce sum c_ke_H2O
+
+# Calculate the total energy for the H2O group
+variable etotal_H2O equal c_reduce_pe_H2O+c_reduce_ke_H2O
+
+
+fix rigid H2O shake 0.0001 100 10000 b 2 a 2
+# velocity H2O create 1.0 5463576
+minimize 1.0e-4 1.0e-6 1000 10000
+
+
+dump mydmp all atom 1000 dump5.lammpstrj
+
+thermo_style custom step temp press etotal ke pe c_temp_H2O c_reduce_pe_H2O c_reduce_ke_H2O v_etotal_H2O
+thermo 1000
+
+
+fix extra all print 1000 """
+- timestep: $(step)
+  temp: $(c_temp_H2O)
+  etotal: $(v_etotal_H2O)
+  pe: $(c_reduce_pe_H2O)
+  ke: $(c_reduce_ke_H2O)
+  """ file output.yaml screen no
+
+
+fix mynve liquid nve/limit 0.1
+fix myber liquid temp/berendsen 1 1 100
+timestep 1.0
+run 20000
+
+fix 1 liquid temp/berendsen 300.0 300.0 100.0
+timestep 1.0
+run 20000
+
+unfix mynve
+fix all_nve liquid nve
+run 20000
+
+unfix all_nve
+fix nvt_equil_H2O liquid nvt temp 300.0 300.0 100.0
+run 60000
+
+write_data spce.data nocoeff
+

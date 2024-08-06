@@ -1,0 +1,61 @@
+# Fix print output for fix extra
+
+- timestep: 1000
+  etotal: 2155.4033626531604568
+
+- timestep: 2000
+  etotal: 1856.5634347742907266
+
+- timestep: 3000
+  etotal: 1650.3331071661675651
+
+- timestep: 4000
+  etotal: 1557.4351332024061776
+
+- timestep: 5000
+  etotal: 1584.7538504361398282
+
+- timestep: 6000
+  etotal: 1969.3864681641484822
+
+- timestep: 7000
+  etotal: 2122.5860652185192521
+
+- timestep: 8000
+  etotal: 1869.7840140021630759
+
+- timestep: 9000
+  etotal: 1686.536869725303859
+
+- timestep: 10000
+  etotal: 1537.6618547887478599
+
+- timestep: 11000
+  etotal: 2208.1465508127034809
+
+- timestep: 12000
+  etotal: 1689.952436393444259
+
+- timestep: 13000
+  etotal: 2360.5420906722592918
+
+- timestep: 14000
+  etotal: 1908.7308804298177165
+
+- timestep: 15000
+  etotal: 2093.7486024098870985
+
+- timestep: 16000
+  etotal: 1958.7437463700171065
+
+- timestep: 17000
+  etotal: 2125.9748453779757256
+
+- timestep: 18000
+  etotal: 2119.2368026008844026
+
+- timestep: 19000
+  etotal: 1976.3498028748413162
+
+- timestep: 20000
+  etotal: 1692.7715361135672083
